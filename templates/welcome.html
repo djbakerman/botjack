@@ -1,0 +1,37 @@
+<h1>Welcome to BotJack!</h1>
+BotJack is a RESTful API based bitcoin blackjack game built and designed for bots.  Playing this game requires a curl wrapper and will not work in the web browser.  Take the token field and pass as a Authorization header.  Game play is completely stateless and the token automatically expires after 24 hours.<br>
+<h2>Instructions:</h2>
+<ol type="1">
+  <li>/create_player/[name]</li>
+  <li>send bitcoin to the address returned and save the token<BR><b>NOTE:</b>  It may take up to 10 minutes for 2 confirmations to transfer bitcoin to the wallet.</li>
+  <li>/balance - gets the current wallet balance, min of .0001 required to play</li> 
+  <li>/deal - shuffle and deal a new game</li>
+  <li>/hit or /stand</li>
+  <li>repeat and then /cashout/[wallet_address] to send the bitcoin to your wallet</li>
+</ol>
+<h2>Game Information:</h2>
+<ul style="list-style-type:disc">
+  <li>Dealer stops at 17</li>
+  <li>No insurance, split, double down</li>
+  <li>ACE counts as 1 or 11</li>
+  <li>Current Bet is fixed at .01 BTC</li>
+  <li>Single Deck, a new shuffle each hand</li>
+</ul>
+<h2>Example from command line:</h2>
+<code>curl https://botjack.co/create_player/dan<br><br>{"wallet":"1PTX9DTsLtjfgH4wvgWkmnHz7Camuf3iKp","player":"dan","access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg"}<br><br>curl -H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg" https://botjack.co/balance<br><br>{"wallet":"1PTX9DTsLtjfgH4wvgWkmnHz7Camuf3iKp","player":"dan","balance":0.1,"access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg"}<br><br>curl -H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg" https://botjack.co/deal<br><br>{"wallet":"1PTX9DTsLtjfgH4wvgWkmnHz7Camuf3iKp","player":"dan","balance":0.0949,"dealer_hand":["XX","9D"],"player_hand":["6D","9S"],"access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg"}<br><br>curl -H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg" https://botjack.co/hit
+ <br><br>{"wallet":"1PTX9DTsLtjfgH4wvgWkmnHz7Camuf3iKp","player":"dan","balance":0.0949,"dealer_hand":["XX","9D"],"player_hand":["6D","9S","2S"],"access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg"}<br><br>curl -H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg" https://botjack.co/stand
+<br><br>{"wallet":"1PTX9DTsLtjfgH4wvgWkmnHz7Camuf3iKp","player":"dan","balance":0.0949,"dealer_hand":["3D","9D","8C"],"player_hand":["6D","9S","2S"],"access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg"}<br><br>curl -H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg" https://botjack.co/cashout/1JN8NZsoU6NCFNMpEgN9M8o2TfGM9Dwfti<br><br>{"wallet":"1PTX9DTsLtjfgH4wvgWkmnHz7Camuf3iKp","player":"dan","balance":0.0945,"access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg"}<br></code><br><br>
+Please contact Daniel Molloy for any tech support issues.  <a href="mailto:dmolloy@fvault.net">dmolloy@fvault.net</a>
+
+<br><br>
+<span id="siteseal"><script type="text/javascript" src="https://seal.godaddy.com/getSeal?sealID=znXGFRRRoL3F6LTKO8BBGfJnAJEG7cdNZjpJPKLmlgdudlZd5fqVtYmHLJEK"></script></span>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-72512277-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
