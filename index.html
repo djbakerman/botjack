@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="UTF-8">
+    <title>Botjack by djbakerman</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" type="text/css" href="stylesheets/normalize.css" media="screen">
+    <link href='https://fonts.googleapis.com/css?family=Open+Sans:400,700' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="stylesheets/stylesheet.css" media="screen">
+    <link rel="stylesheet" type="text/css" href="stylesheets/github-light.css" media="screen">
+  </head>
+  <body>
+    <section class="page-header">
+      <h1 class="project-name">Botjack</h1>
+      <h2 class="project-tagline">a restful bitcoin blackjack game</h2>
+      <a href="https://github.com/djbakerman/botjack" class="btn">View on GitHub</a>
+      <a href="https://github.com/djbakerman/botjack/zipball/master" class="btn">Download .zip</a>
+      <a href="https://github.com/djbakerman/botjack/tarball/master" class="btn">Download .tar.gz</a>
+    </section>
+
+    <section class="main-content">
+      <h1>
+<a id="welcome-to-botjack" class="anchor" href="#welcome-to-botjack" aria-hidden="true"><span class="octicon octicon-link"></span></a>Welcome to BotJack!</h1>
+
+<p>BotJack is a RESTful API based bitcoin blackjack game built and designed for bots.  Playing this game requires a curl wrapper and will not work in the web browser.  Use the returned token field and then and pass it back in the Authorization header.  Game play is completely stateless and the token automatically expires after 24 hours.  The purpose of using a REST method for game play allows for continuous bot play.  Check out the <a href="http://www.mathworks.com/company/newsletters/articles/simulating-blackjack-with-matlab.html">math</a> and see if this can work out to your advantage.<br></p>
+
+<h2>
+<a id="instructions" class="anchor" href="#instructions" aria-hidden="true"><span class="octicon octicon-link"></span></a>Instructions:</h2>
+
+<ol type="1">
+  <li>/create_player/[name]</li>
+  <li>send bitcoin to the address returned and save the token<br><b>NOTE:</b>  It may take up to 10 minutes for 2 confirmations to transfer bitcoin to the wallet.</li>
+  <li>/balance - gets the current wallet balance, min of .01 BTC required to play</li> 
+  <li>/deal - shuffle and deal a new game</li>
+  <li>/hit or /stand</li>
+  <li>repeat and then /cashout/[wallet_address] to send the bitcoin to your wallet</li>
+</ol>
+
+<h2>
+<a id="game-information" class="anchor" href="#game-information" aria-hidden="true"><span class="octicon octicon-link"></span></a>Game Information:</h2>
+
+<ul>
+  <li>Dealer stops at 17</li>
+  <li>No insurance, split, double down</li>
+  <li>ACE counts as 1 or 11</li>
+  <li>Current Bet is fixed at .01 BTC</li>
+  <li>Single Deck, a new shuffle each hand</li>
+</ul>
+
+<h2>
+<a id="provability" class="anchor" href="#provability" aria-hidden="true"><span class="octicon octicon-link"></span></a>Provability:</h2>
+
+<p>This game uses the php functions "srand" and "shuffle" to produce a deck.  The deck is "shuffled" four times to ensure randomness.  The code for shuffle is located <a href="http://php.net/manual/en/function.shuffle.php">here</a>.</p>
+
+<h2>
+<a id="example-from-command-line" class="anchor" href="#example-from-command-line" aria-hidden="true"><span class="octicon octicon-link"></span></a>Example from command line:</h2>
+
+<p><code>curl <a href="https://botjack.co/create_player/dan">https://botjack.co/create_player/dan</a><br><br>{"wallet":"1PTX9DTsLtjfgH4wvgWkmnHz7Camuf3iKp","player":"dan","access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg"}<br><br>curl -H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg" <a href="https://botjack.co/balance">https://botjack.co/balance</a><br><br>{"wallet":"1PTX9DTsLtjfgH4wvgWkmnHz7Camuf3iKp","player":"dan","balance":0.1,"access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg"}<br><br>curl -H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg" <a href="https://botjack.co/deal">https://botjack.co/deal</a><br><br>{"wallet":"1PTX9DTsLtjfgH4wvgWkmnHz7Camuf3iKp","player":"dan","balance":0.0949,"dealer_hand":["XX","9D"],"player_hand":["6D","9S"],"access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg"}<br><br>curl -H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg" <a href="https://botjack.co/hit">https://botjack.co/hit</a>
+ <br><br>{"wallet":"1PTX9DTsLtjfgH4wvgWkmnHz7Camuf3iKp","player":"dan","balance":0.0949,"dealer_hand":["XX","9D"],"player_hand":["6D","9S","2S"],"access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg"}<br><br>curl -H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg" <a href="https://botjack.co/stand">https://botjack.co/stand</a>
+<br><br>{"wallet":"1PTX9DTsLtjfgH4wvgWkmnHz7Camuf3iKp","player":"dan","balance":0.0949,"dealer_hand":["3D","9D","8C"],"player_hand":["6D","9S","2S"],"access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg"}<br><br>curl -H "Authorization: eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg" <a href="https://botjack.co/cashout/1JN8NZsoU6NCFNMpEgN9M8o2TfGM9Dwfti">https://botjack.co/cashout/1JN8NZsoU6NCFNMpEgN9M8o2TfGM9Dwfti</a><br><br>{"wallet":"1PTX9DTsLtjfgH4wvgWkmnHz7Camuf3iKp","player":"dan","balance":0.0945,"access_token":"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbiI6IjYxYzIxMGI1Y2RlYWFlMjkzNGYzYmQwOTEyYWU2Nzk0MDc3M2RlN2RiODkzNTcwMjY2NjMwOGE1NTk3NGNlMzQiLCJwbGF5ZXIiOiJkYW4iLCJ3YWxsZXQiOiIxUFRYOURUc0x0amZnSDR3dmdXa21uSHo3Q2FtdWYzaUtwIiwiZXhwIjoxNDUzMTI3OTE0LCJpc3MiOiJib3RqYWNrLmNvIn0.OaDbxZX8YRN-bE6acBchj-6NoNu9LUgnEpRciYE9lAg"}<br></code><br><br>
+Please contact Daniel Molloy for any tech support issues.  <a href="mailto:dmolloy@fvault.net"></a><a href="mailto:dmolloy@fvault.net">dmolloy@fvault.net</a><br><br>
+<a href="https://github.com/djbakerman/botjack">Open sourced under GPL available on GitHub</a>
+<br><br></p>
+
+      <footer class="site-footer">
+        <span class="site-footer-owner"><a href="https://github.com/djbakerman/botjack">Botjack</a> is maintained by <a href="https://github.com/djbakerman">djbakerman</a>.</span>
+
+        <span class="site-footer-credits">This page was generated by <a href="https://pages.github.com">GitHub Pages</a> using the <a href="https://github.com/jasonlong/cayman-theme">Cayman theme</a> by <a href="https://twitter.com/jasonlong">Jason Long</a>.</span>
+      </footer>
+
+    </section>
+
+            <script type="text/javascript">
+            var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+            document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+          </script>
+          <script type="text/javascript">
+            try {
+              var pageTracker = _gat._getTracker("UA-72512277-1");
+            pageTracker._trackPageview();
+            } catch(err) {}
+          </script>
+
+  </body>
+</html>
