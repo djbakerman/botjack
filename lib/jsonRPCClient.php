@@ -137,7 +137,8 @@ class jsonRPCClient {
 			$this->debug && $this->debug.='***** Server response *****'."\n".$response.'***** End of server response *****'."\n";
 			$response = json_decode($response,true);
 		} else {
-			throw new Exception('Unable to connect to '.$this->url);
+			// Fixed: Don't expose URL in error message to prevent information disclosure
+			throw new Exception('Unable to connect to RPC server');
 		}
 		
 		// debug output
@@ -152,7 +153,8 @@ class jsonRPCClient {
 				throw new Exception('Incorrect response id (request id: '.$currentId.', response id: '.$response['id'].')');
 			}
 			if (!is_null($response['error'])) {
-				throw new Exception('Request error: '.$response['error']);
+				// Fixed: Don't expose detailed error in exception to prevent information disclosure
+				throw new Exception('RPC request failed');
 			}
 			
 			return $response['result'];
