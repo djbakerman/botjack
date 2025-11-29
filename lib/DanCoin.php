@@ -7,14 +7,35 @@
     require_once('BlackJack1.php');
     
     
+    /**
+     * Generate cryptographically secure random bytes
+     * @param int $length Number of bytes to generate
+     * @return string Random bytes
+     * @throws Exception if no secure random source is available
+     */
     function randomKey($length=32) {
-      if(function_exists('openssl_random_pseudo_bytes')) {
+      // PHP 7+ has random_bytes which is cryptographically secure
+      if (function_exists('random_bytes')) {
+        return random_bytes($length);
+      }
+      // Fallback to openssl for PHP 5.x
+      if (function_exists('openssl_random_pseudo_bytes')) {
         $rnd = openssl_random_pseudo_bytes($length, $strong);
         if ($strong === true) {
           return $rnd;
         }
       }
-      return mcrypt_create_iv($length, MCRYPT_DEV_URANDOM);
+      throw new Exception('No cryptographically secure random source available');
+    }
+
+    /**
+     * Generate secure hash for account identification using SHA-256
+     * Replaces insecure MD5 hashing
+     * @param string $token The token to hash
+     * @return string SHA-256 hash (64 chars hex)
+     */
+    function secureAccountHash($token) {
+      return hash('sha256', $token);
     }
     
     class DanDatabase {
@@ -163,8 +184,9 @@
 
 			if ($data) {
 				$ipv4 = $_SERVER['REMOTE_ADDR'];
-				if (time() >= strtotime($data['token_expire']) || $ipv4 != $data['ipv4']) {
-				
+				// Use strict comparison for IP validation
+				if (time() >= strtotime($data['token_expire']) || $ipv4 !== $data['ipv4']) {
+
 					// DELETE FROM users WHERE id = ?
 				//	$deleteStatement = $this->pdo->delete()
                   //     ->from('players')
@@ -174,7 +196,9 @@
 				} else {
 						$session->put("player_name",$data['player_name']);
 						$session->put("balance",$data['balance']);
-						$session->put("wallet",unserialize($data['wallet']));
+						// Use json_decode instead of unsafe unserialize to prevent object injection
+						$walletData = json_decode($data['wallet'], true);
+						$session->put("wallet", $walletData);
 						$token_expire = date("Y-m-d H:i:s", strtotime("+1 hour"));
 						// UPDATE users SET pwd = ? WHERE id = ?
 						$updateStatement = $this->pdo->update(array('token_expire' => $token_expire))
@@ -182,7 +206,7 @@
                        		->where('token', '=', $token);
 
 						$affectedRows = $updateStatement->execute();
-						return true;				
+						return true;
 				}
 			}
 			else
@@ -207,10 +231,10 @@
     
     class DanCoin {
     
-    	private $username = $_ENV['RPC_USERNAME'];
-    	private $password = $_ENV['password'];
-    	private $btcserver = $_ENV['BTC_WALLET'];
-    	private $btcport = $_EVN['BTC_PORT'];
+    	private $username;
+    	private $password;
+    	private $btcserver;
+    	private $btcport;
     	private $player = "Anonymous";
 
     	private $token = "Unset";
@@ -228,19 +252,29 @@
     	
     	public function __construct()
     	{
-    		
-    		if ($this->validateToken()) 
-    			try {
-    				$at = JWT::decode($_SERVER['HTTP_AUTHORIZATION'], $_ENV['token_key']);
-    				if ($at) {
-    					$this->__set("access_token",$at);
-    					$this->__set("token",$this->__get("access_token")->token);	
-    					$this->__set("wallet",$this->__get("access_token")->wallet);
-    					$this->__set("player",$this->__get("access_token")->player);
-    				} //if access token
-    			} catch (Exception $e) {
-					$this->__set("token","Unset");
+    		// Initialize RPC credentials from environment variables
+    		$this->username = isset($_ENV['RPC_USERNAME']) ? $_ENV['RPC_USERNAME'] : '';
+    		$this->password = isset($_ENV['password']) ? $_ENV['password'] : '';
+    		$this->btcserver = isset($_ENV['BTC_WALLET']) ? $_ENV['BTC_WALLET'] : '';
+    		$this->btcport = isset($_ENV['BTC_PORT']) ? $_ENV['BTC_PORT'] : '';
+
+    		// Check if Authorization header exists before attempting to validate
+    		if (isset($_SERVER['HTTP_AUTHORIZATION']) && !empty($_SERVER['HTTP_AUTHORIZATION'])) {
+    			if ($this->validateToken()) {
+    				try {
+    					$tokenKey = isset($_ENV['token_key']) ? $_ENV['token_key'] : '';
+    					$at = JWT::decode($_SERVER['HTTP_AUTHORIZATION'], $tokenKey);
+    					if ($at) {
+    						$this->__set("access_token",$at);
+    						$this->__set("token",$this->__get("access_token")->token);
+    						$this->__set("wallet",$this->__get("access_token")->wallet);
+    						$this->__set("player",$this->__get("access_token")->player);
+    					}
+    				} catch (Exception $e) {
+    					$this->__set("token","Unset");
+    				}
     			}
+    		}
     	} //construct
     	
     	function createPlayer($player = "Anonymous") {
@@ -265,29 +299,37 @@
     	} //createPlayer
     	
     	function validateToken() {
-    		try {	
-				$at = JWT::decode($_SERVER['HTTP_AUTHORIZATION'], $_ENV['token_key']);
-			} catch (Exception $e) {
-				return false;
-			}
-		
-			$date = new DateTime();
-			
-			if ($date->getTimestamp() > $at->exp)
-				return false;
-				
-			if ($at->iss != "botjack.co")
-				return false;
-				
-			try {
-				$addresses = $this->getWalletsFromAccount($at->token);
-				if ($addresses == null || $addresses[0] != $at->wallet)
-					return false;
-			} catch (Exception $e) {
-				return false;
-			}
-				
-			return true;
+    		// Check if Authorization header exists
+    		if (!isset($_SERVER['HTTP_AUTHORIZATION']) || empty($_SERVER['HTTP_AUTHORIZATION'])) {
+    			return false;
+    		}
+
+    		try {
+    			$tokenKey = isset($_ENV['token_key']) ? $_ENV['token_key'] : '';
+    			$at = JWT::decode($_SERVER['HTTP_AUTHORIZATION'], $tokenKey);
+    		} catch (Exception $e) {
+    			return false;
+    		}
+
+    		$date = new DateTime();
+
+    		if ($date->getTimestamp() > $at->exp)
+    			return false;
+
+    		// Use strict comparison for issuer check
+    		if ($at->iss !== "botjack.co")
+    			return false;
+
+    		try {
+    			$addresses = $this->getWalletsFromAccount($at->token);
+    			// Use strict comparison for security checks
+    			if ($addresses === null || $addresses[0] !== $at->wallet)
+    				return false;
+    		} catch (Exception $e) {
+    			return false;
+    		}
+
+    		return true;
     	}
     	
     	function getPlayStatus() {
@@ -330,21 +372,23 @@
         					$this->__set('dealerHand',$dh);
 						break;
 						case 1:
-							if($this->transferBetFunds("escrow",md5($this->__get['token']),$dc->__get['minbet']*2) == false)
+							// Fixed: Use secureAccountHash instead of MD5, correct method call syntax
+							if($this->transferBetFunds("escrow",secureAccountHash($this->__get("token")),$this->__get("minbet")*2) === false)
 								$error = true;
 							else
 								$db->deleteRecord($this->__get("token"));
 						break;
 						case 2:
-							if($this->transferBetFunds("escrow","bitsman",$dc->__get['minbet']*2) == false)
+							if($this->transferBetFunds("escrow","bitsman",$this->__get("minbet")*2) === false)
 								$error = true;
 							else
 								$db->deleteRecord($this->__get("token"));
 						break;
 						case 3:
-							if($this->transferBetFunds("escrow","bitsman",$dc->__get['minbet']*2) == false)
+							if($this->transferBetFunds("escrow","bitsman",$this->__get("minbet")*2) === false)
 								$error = true;
-							if($this->transferBetFunds("escrow",md5($this->__get['token']),$dc->__get['minbet']*2) == false)
+							// Fixed: Use secureAccountHash instead of MD5, correct method call syntax
+							if($this->transferBetFunds("escrow",secureAccountHash($this->__get("token")),$this->__get("minbet")*2) === false)
 								$error = true;
 							else
 								$db->deleteRecord($this->__get("token"));
@@ -391,9 +435,9 @@
 					$gs->uHandValue = $game->getHandValue($gs->userHand);
 
 					$amount = $this->__get('minbet') * 2;
-					if ($gs->uHandValue > 21) { 
+					if ($gs->uHandValue > 21) {
 						$gameOver = true;
-						if($this->transferBetFunds("escrow","bitsman",$amount) == false) {
+						if($this->transferBetFunds("escrow","bitsman",$amount) === false) {
 								$error = true;
 						} else
 							$db->deleteRecord($this->__get("token"));
@@ -456,30 +500,31 @@
 
 					$amount = $this->__get('minbet') * 2;
 					
-					if ($gs->dHandValue == $gs->uHandValue) { 
+					// Use strict comparison and secureAccountHash instead of MD5
+					if ($gs->dHandValue === $gs->uHandValue) {
 						$gameOver = true;
-                        if($this->transferBetFunds("escrow",md5($this->__get("token")),$amount) == false) {
+                        if($this->transferBetFunds("escrow",secureAccountHash($this->__get("token")),$amount) === false) {
                         	$error = true;
                         } else
-                        	if($this->transferBetFunds("escrow","bitsman",$amount) == false) {
+                        	if($this->transferBetFunds("escrow","bitsman",$amount) === false) {
                         		$error = true;
                             } else
                             	$db->deleteRecord($this->__get("token"));
-					} elseif ($gs->dHandValue > 21) { 
+					} elseif ($gs->dHandValue > 21) {
 						$gameOver = true;
-						if($this->transferBetFunds("escrow",md5($this->__get("token")),$amount) == false) {
+						if($this->transferBetFunds("escrow",secureAccountHash($this->__get("token")),$amount) === false) {
 								 $error = true;
 						} else
 							$db->deleteRecord($this->__get("token"));
-					} elseif ($gs->dHandValue < $gs->uHandValue) { 
+					} elseif ($gs->dHandValue < $gs->uHandValue) {
 						$gameOver = true;
-						if($this->transferBetFunds("escrow",md5($this->__get("token")),$amount) == false) {
+						if($this->transferBetFunds("escrow",secureAccountHash($this->__get("token")),$amount) === false) {
 								$error = true;
 						} else
 							$db->deleteRecord($this->__get("token"));
-					} elseif ($gs->dHandValue > $gs->uHandValue) { 
+					} elseif ($gs->dHandValue > $gs->uHandValue) {
 						$gameOver = true;
-						if($this->transferBetFunds("escrow","bitsman",$amount) == false) {
+						if($this->transferBetFunds("escrow","bitsman",$amount) === false) {
 								$error = true;
 						} else
 							$db->deleteRecord($this->__get("token"));
@@ -620,10 +665,11 @@
     		if ($this->getAccountBalance($token) < $this->__get("minbet"))
     			return false;
     		
-    		if ($this->transferBetFunds(md5($token), "escrow", $this->__get("minbet")) == false)
+    		// Use secureAccountHash instead of MD5 for account identification
+    		if ($this->transferBetFunds(secureAccountHash($token), "escrow", $this->__get("minbet")) === false)
     			return false;
     			
-    		if ($this->transferBetFunds("bitsman", "escrow", $this->__get("minbet")) == false)
+    		if ($this->transferBetFunds("bitsman", "escrow", $this->__get("minbet")) === false)
     			return false;
     			
     		if ($this->__get("db") != null)
@@ -676,66 +722,100 @@
     	} //getBalance
     	
     	function cashout($sendaddress) {
+			// Validate Bitcoin address format before proceeding
+			if (!$this->isValidBitcoinAddress($sendaddress)) {
+				return false;
+			}
+
 			if ($this->validateToken()) {
 				$ab = $this->getAccountBalance($this->__get("token"));
 				if ($ab === null)
 					return false;
-					
-				if ($ab - '.0004' < 0)
+
+				if ($ab - 0.0004 < 0)
 					return false;
 				else
-					$ab = $ab - .0004;
-					
+					$ab = $ab - 0.0004;
+
 				try {
 					$bitcoind = new jsonRPCClient('http://' . $this->__get("username") . ':' . $this->__get("password") . '@' . $this->__get("btcserver") . ':' . $this->__get("btcport") .'/');
-					$balance = $bitcoind->sendfrom(md5($this->__get("token")),$sendaddress,$ab,2);
-					
+					// Use secureAccountHash instead of MD5 for account identification
+					$balance = $bitcoind->sendfrom(secureAccountHash($this->__get("token")),$sendaddress,$ab,2);
+
 				} catch (Exception $e) {
 					return false;
 				}
-				
+
 				$this->__set("balance", $ab);
-				$this->__set("access_token",JWT::encode($this->__get("access_token"), $_ENV['token_key']));
+				$tokenKey = isset($_ENV['token_key']) ? $_ENV['token_key'] : '';
+				$this->__set("access_token",JWT::encode($this->__get("access_token"), $tokenKey));
 				return true;
 			} else {
 				return false;
 			}
     	} //cashout
 
+    	/**
+    	 * Validate Bitcoin address format
+    	 * @param string $address The Bitcoin address to validate
+    	 * @return bool True if valid, false otherwise
+    	 */
+    	function isValidBitcoinAddress($address) {
+    		if (empty($address) || !is_string($address)) {
+    			return false;
+    		}
+    		// Bitcoin addresses are 25-34 characters long
+    		// Legacy addresses start with 1 or 3
+    		// Bech32 addresses start with bc1
+    		if (preg_match('/^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$/', $address)) {
+    			return true;
+    		}
+    		// Bech32 addresses (SegWit)
+    		if (preg_match('/^bc1[a-zA-HJ-NP-Z0-9]{25,89}$/i', $address)) {
+    			return true;
+    		}
+    		return false;
+    	}
+
     	function getWallet($token = "Unset") {
-    		if($token == "Unset")
+    		// Use strict comparison
+    		if($token === "Unset")
     			return null;
     		else {
     			$bitcoind = new jsonRPCClient('http://' . $this->__get("username") . ':' . $this->__get("password") . '@' . $this->__get("btcserver") . ':' . $this->__get("btcport") .'/');
-				$newaddr = $bitcoind->getnewaddress(md5($token));
+				// Use secureAccountHash instead of MD5 for account identification
+				$newaddr = $bitcoind->getnewaddress(secureAccountHash($token));
 				return $newaddr;
 			}
 			return null;
     	} //getWallet
-    	
+
     	function getWalletsFromAccount($token = "Unset") {
-    		if($token == "Unset")
+    		// Use strict comparison
+    		if($token === "Unset")
     			return null;
     		else {
     			$bitcoind = new jsonRPCClient('http://' . $this->__get("username") . ':' . $this->__get("password") . '@' . $this->__get("btcserver") . ':' . $this->__get("btcport") .'/');
-				$newaddr = $bitcoind->getaddressesbyaccount(md5($token));
+				// Use secureAccountHash instead of MD5 for account identification
+				$newaddr = $bitcoind->getaddressesbyaccount(secureAccountHash($token));
 				return $newaddr;
 			}
 			return null;
     	} //getWallet
-    	
+
     	function getAccountBalance($token = "Unset") {
-    	
-    		if ($token == "Unset")
+    		// Use strict comparison
+    		if ($token === "Unset")
     			return null;
     		try {
     			$bitcoind = new jsonRPCClient('http://' . $this->__get("username") . ':' . $this->__get("password") . '@' . $this->__get("btcserver") . ':' . $this->__get("btcport") .'/');
-				$balance = $bitcoind->getbalance(md5($token),2);
+				// Use secureAccountHash instead of MD5 for account identification
+				$balance = $bitcoind->getbalance(secureAccountHash($token),2);
 				return $balance;
 			} catch (Exception $e) {
 				return null;
 			}
-			
+
     	} //getWallet
     	
     	function getHouseBalance() {

@@ -3,6 +3,7 @@
 class SecureSessionHandler extends SessionHandler {
 
     protected $key, $name, $cookie;
+    private $cipher = 'aes-256-cbc';
 
     public function __construct($key, $name = 'FVAULT', $cookie = [])
     {
@@ -20,8 +21,8 @@ class SecureSessionHandler extends SessionHandler {
 
         $this->setup();
     }
-    
-    
+
+
 
     private function setup()
     {
@@ -49,13 +50,20 @@ class SecureSessionHandler extends SessionHandler {
 
         return false;
     }
-    
-    public function setToken()
+
+    public function setToken($value = '')
     {
     	if (session_id() === '') {
-    		//do something
+    		// Session not started, do nothing
+    		return false;
     	} else {
-    		setcookie("TestCookie", $value);
+    		// Fixed: $value was undefined, now passed as parameter with default
+    		setcookie("TestCookie", $value, [
+    		    'httponly' => true,
+    		    'secure' => isset($_SERVER['HTTPS']),
+    		    'samesite' => 'Strict'
+    		]);
+    		return true;
     	}
     }
 
@@ -85,14 +93,85 @@ class SecureSessionHandler extends SessionHandler {
         return session_regenerate_id(true);
     }
 
+    /**
+     * Decrypt session data using OpenSSL AES-256-CBC
+     * Replaces deprecated mcrypt_decrypt with MCRYPT_3DES and MCRYPT_MODE_ECB
+     */
     public function read($id)
     {
-        return mcrypt_decrypt(MCRYPT_3DES, $this->key, parent::read($id), MCRYPT_MODE_ECB);
+        $data = parent::read($id);
+        if (empty($data)) {
+            return '';
+        }
+        return $this->decrypt($data);
     }
 
+    /**
+     * Encrypt session data using OpenSSL AES-256-CBC
+     * Replaces deprecated mcrypt_encrypt with MCRYPT_3DES and MCRYPT_MODE_ECB
+     */
     public function write($id, $data)
     {
-        return parent::write($id, mcrypt_encrypt(MCRYPT_3DES, $this->key, $data, MCRYPT_MODE_ECB));
+        $encrypted = $this->encrypt($data);
+        return parent::write($id, $encrypted);
+    }
+
+    /**
+     * Encrypt data using AES-256-CBC with proper IV
+     * @param string $data Data to encrypt
+     * @return string Base64 encoded encrypted data with IV prepended
+     */
+    private function encrypt($data) {
+        // Derive a proper 256-bit key from the provided key
+        $key = hash('sha256', $this->key, true);
+
+        // Generate a cryptographically secure random IV
+        $ivLength = openssl_cipher_iv_length($this->cipher);
+        $iv = openssl_random_pseudo_bytes($ivLength);
+
+        // Encrypt the data
+        $encrypted = openssl_encrypt($data, $this->cipher, $key, OPENSSL_RAW_DATA, $iv);
+
+        if ($encrypted === false) {
+            return '';
+        }
+
+        // Prepend IV to encrypted data and base64 encode
+        return base64_encode($iv . $encrypted);
+    }
+
+    /**
+     * Decrypt data using AES-256-CBC
+     * @param string $data Base64 encoded encrypted data with IV prepended
+     * @return string Decrypted data
+     */
+    private function decrypt($data) {
+        // Derive the same 256-bit key
+        $key = hash('sha256', $this->key, true);
+
+        // Decode from base64
+        $data = base64_decode($data);
+        if ($data === false) {
+            return '';
+        }
+
+        // Extract IV from the beginning of data
+        $ivLength = openssl_cipher_iv_length($this->cipher);
+        if (strlen($data) < $ivLength) {
+            return '';
+        }
+
+        $iv = substr($data, 0, $ivLength);
+        $encrypted = substr($data, $ivLength);
+
+        // Decrypt the data
+        $decrypted = openssl_decrypt($encrypted, $this->cipher, $key, OPENSSL_RAW_DATA, $iv);
+
+        if ($decrypted === false) {
+            return '';
+        }
+
+        return $decrypted;
     }
 
     public function isExpired($ttl = 30)
@@ -112,12 +191,14 @@ class SecureSessionHandler extends SessionHandler {
 
     public function isFingerprint()
     {
-        $hash = md5(
+        // Use SHA-256 instead of MD5 for fingerprinting
+        $hash = hash('sha256',
             $_SERVER['HTTP_USER_AGENT'] .
             (ip2long($_SERVER['REMOTE_ADDR']) & ip2long('255.255.0.0'))
         );
 
         if (isset($_SESSION['_fingerprint'])) {
+            // Use strict comparison
             return $_SESSION['_fingerprint'] === $hash;
         }
 

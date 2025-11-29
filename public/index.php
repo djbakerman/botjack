@@ -25,7 +25,8 @@ include('../lib/DanCoin.php');
  * of setting names and values into the application constructor.
  */
 $app = new Slim\App();
-//$app->add(new \Slim\Csrf\Guard);
+// Enable CSRF protection for POST/PUT/DELETE requests
+$app->add(new \Slim\Csrf\Guard);
 
 // Get container
 $container = $app->getContainer();
@@ -146,17 +147,20 @@ $app->get('/stand', function ($request, $response, $args) {
 
 
 $app->get('/funds/{name}', function ($request, $response, $args) {
-    $response->write("Hello, " . $args['name']);
+    // XSS fix: escape user input before output
+    $response->write("Hello, " . htmlspecialchars($args['name'], ENT_QUOTES, 'UTF-8'));
     return $response;
 })->setArgument('name', 'World!');
 
 $app->get('/deposit/{name}/{amount}', function ($request, $response, $args) {
-    $response->write("Hello, " . $args['name']);
+    // XSS fix: escape user input before output
+    $response->write("Hello, " . htmlspecialchars($args['name'], ENT_QUOTES, 'UTF-8'));
     return $response;
 })->setArgument('name', 'World!');
 
 $app->get('/bet/{name}[/{amount}]', function ($request, $response, $args) {
-    $response->write("Hello, " . $args['name']);
+    // XSS fix: escape user input before output
+    $response->write("Hello, " . htmlspecialchars($args['name'], ENT_QUOTES, 'UTF-8'));
     return $response;
 })->setArgument('name', 'World!');
 
@@ -165,12 +169,14 @@ $app->get('/bet/{name}[/{amount}]', function ($request, $response, $args) {
 
 
 $app->get('/stay/{name}', function ($request, $response, $args) {
-    $response->write("Hello, " . $args['name']);
+    // XSS fix: escape user input before output
+    $response->write("Hello, " . htmlspecialchars($args['name'], ENT_QUOTES, 'UTF-8'));
     return $response;
 })->setArgument('name', 'World!');
 
 $app->get('/hello/[{name}]', function ($request, $response, $args) {
-    $response->write("Hello, " . $args['name']);
+    // XSS fix: escape user input before output
+    $response->write("Hello, " . htmlspecialchars($args['name'], ENT_QUOTES, 'UTF-8'));
     return $response;
 })->setArgument('name', 'World!');
 
